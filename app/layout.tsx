@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import MiniAppHeader from "@/components/mini-app-header";
-import MiniAppFooter from "@/components/mini-app-footer";
+import MiniAppProvider from "@/components/mini-app-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,8 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CastDeck - Farcaster Content Management",
-  description: "Schedule and manage your Farcaster content with ease. Write drafts, schedule posts, and maintain your content flow.",
+  title: "CastDeck",
+  description: "Schedule and manage your Farcaster content",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
 };
 
 export default function RootLayout({
@@ -27,18 +27,22 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-black`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-transparent`}
+        style={{
+          // Mini App specific styles
+          overscrollBehavior: 'none',
+          WebkitOverflowScrolling: 'touch',
+          // Remove any default margins/padding
+          margin: 0,
+          padding: 0,
+        }}
       >
-        <div className="min-h-screen flex flex-col">
-          <MiniAppHeader />
-
-          {/* Main Content */}
-          <main className="flex-1 overflow-auto">
+        <MiniAppProvider>
+          {/* Mini App Container */}
+          <div className="min-h-screen bg-white dark:bg-black">
             {children}
-          </main>
-
-          <MiniAppFooter />
-        </div>
+          </div>
+        </MiniAppProvider>
       </body>
     </html>
   );

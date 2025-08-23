@@ -44,7 +44,7 @@
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.75rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -118,5 +118,57 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Mini App Specific Styles */
+@layer components {
+  /* Prevent text selection in Mini Apps */
+  .mini-app {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
+  /* Mini App safe area handling */
+  .mini-app-container {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Farcaster-style button */
+  .farcaster-button {
+    @apply bg-black dark:bg-white text-white dark:text-black font-semibold py-3 px-6 rounded-full transition-all duration-200;
+    @apply hover:bg-gray-800 dark:hover:bg-gray-200 active:scale-95;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+  }
+
+  /* Farcaster-style card */
+  .farcaster-card {
+    @apply bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-2xl p-4;
+    @apply shadow-sm hover:shadow-md transition-shadow duration-200;
+  }
+
+  /* Farcaster-style input */
+  .farcaster-input {
+    @apply bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4;
+    @apply focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent;
+    @apply placeholder:text-gray-500 dark:placeholder:text-gray-400;
+  }
+
+  /* Mini App navigation */
+  .mini-app-nav {
+    @apply flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800;
+    @apply bg-white/80 dark:bg-black/80 backdrop-blur-md;
+  }
+
+  /* Mini App bottom sheet style */
+  .mini-app-bottom-sheet {
+    @apply fixed bottom-0 left-0 right-0 bg-white dark:bg-black;
+    @apply border-t border-gray-200 dark:border-gray-800 rounded-t-3xl;
+    @apply shadow-2xl;
   }
 }
