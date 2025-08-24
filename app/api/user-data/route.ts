@@ -15,10 +15,35 @@ export async function GET(request: NextRequest) {
     // Extract the token from the Bearer header
     const token = authHeader.substring(7)
 
-    // For now, return an error indicating authentication is required
-    // In a real implementation, you would verify the JWT token from the Mini App SDK
+    // Verify and decode the JWT token to get real user data
+    try {
+      // TODO: Add proper JWT verification library
+      // For now, we'll decode the token to see what's in it
+      const tokenParts = token.split('.')
+      if (tokenParts.length === 3) {
+        const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString())
+        console.log('JWT payload:', payload)
+
+        // Extract user data from the token payload
+        const userData = {
+          fid: payload.sub || payload.fid,
+          username: payload.username,
+          displayName: payload.displayName,
+          avatarUrl: payload.avatarUrl
+        }
+
+        return NextResponse.json(userData)
+      }
+    } catch (jwtError) {
+      console.error('JWT verification failed:', jwtError)
+      return NextResponse.json(
+        { error: 'Invalid token' },
+        { status: 401 }
+      )
+    }
+
     return NextResponse.json(
-      { error: 'Authentication required - please use Mini App SDK' },
+      { error: 'Invalid token format' },
       { status: 401 }
     )
   } catch (error) {
