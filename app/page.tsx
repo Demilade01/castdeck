@@ -1,8 +1,39 @@
+'use client'
+
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useFarcasterUser } from "@/lib/farcaster";
+import { castdeckService } from "@/lib/database";
 
 export default function Home() {
+  const [stats, setStats] = useState({ draftCount: 0, scheduledCount: 0 });
+  const [isLoading, setIsLoading] = useState(true);
+  const { dbUser } = useFarcasterUser();
+
+  // Load user stats from database
+  useEffect(() => {
+    const loadStats = async () => {
+      if (!dbUser?.id) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const userStats = await castdeckService.getUserStats(dbUser.id);
+        setStats(userStats);
+      } catch (err) {
+        console.error('Error loading stats:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadStats();
+  }, [dbUser?.id]);
+
   return (
-      <div className="mini-app mini-app-container">
+    <div className="mini-app mini-app-container">
       {/* Mini App Header */}
       <div className="mini-app-nav">
         <div className="flex items-center gap-2">
@@ -15,7 +46,7 @@ export default function Home() {
         </div>
         <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826 2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </button>
@@ -79,11 +110,19 @@ export default function Home() {
           <h3 className="font-semibold text-lg mb-4">Your Content</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="text-center p-3 bg-gray-50 dark:bg-gray-900 rounded-xl">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">0</div>
+              {isLoading ? (
+                <div className="w-8 h-8 border-2 border-gray-300 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin mx-auto mb-2"></div>
+              ) : (
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.draftCount}</div>
+              )}
               <div className="text-sm text-gray-500 dark:text-gray-400">Drafts</div>
             </div>
             <div className="text-center p-3 bg-gray-50 dark:bg-gray-900 rounded-xl">
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">0</div>
+              {isLoading ? (
+                <div className="w-8 h-8 border-2 border-gray-300 border-t-green-600 dark:border-t-green-400 rounded-full animate-spin mx-auto mb-2"></div>
+              ) : (
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.scheduledCount}</div>
+              )}
               <div className="text-sm text-gray-500 dark:text-gray-400">Scheduled</div>
             </div>
           </div>
