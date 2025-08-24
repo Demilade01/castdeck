@@ -2,50 +2,63 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useFarcasterUser } from '@/lib/farcaster'
+import { castdeckService } from '@/lib/database'
 
 export default function CreatePage() {
   const [content, setContent] = useState('')
   const [isScheduling, setIsScheduling] = useState(false)
   const [scheduledTime, setScheduledTime] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const { dbUser } = useFarcasterUser()
   const router = useRouter()
 
   const characterCount = content.length
   const maxCharacters = 320 // Farcaster cast limit
 
   const handleSave = async () => {
-    if (!content.trim()) return
+    if (!content.trim() || !dbUser?.id) return
 
     setIsSubmitting(true)
+    setError(null)
+
     try {
-      // TODO: Implement save to database
-      console.log('Saving draft:', content)
+      // Save draft to database
+      await castdeckService.createDraftWithScheduling(
+        dbUser.id,
+        content.trim()
+      )
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
+      console.log('✅ Draft saved successfully')
       router.push('/drafts')
-    } catch (error) {
-      console.error('Error saving draft:', error)
+    } catch (err) {
+      console.error('Error saving draft:', err)
+      setError('Failed to save draft. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const handleSchedule = async () => {
-    if (!content.trim() || !scheduledTime) return
+    if (!content.trim() || !scheduledTime || !dbUser?.id) return
 
     setIsSubmitting(true)
+    setError(null)
+
     try {
-      // TODO: Implement scheduling
-      console.log('Scheduling post:', content, 'for:', scheduledTime)
+      // Save scheduled post to database
+      await castdeckService.createDraftWithScheduling(
+        dbUser.id,
+        content.trim(),
+        new Date(scheduledTime)
+      )
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
+      console.log('✅ Post scheduled successfully')
       router.push('/scheduled')
-    } catch (error) {
-      console.error('Error scheduling post:', error)
+    } catch (err) {
+      console.error('Error scheduling post:', err)
+      setError('Failed to schedule post. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -76,6 +89,12 @@ export default function CreatePage() {
 
       {/* Main Content */}
       <div className="p-4 space-y-6">
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+            <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+          </div>
+        )}
+
         {/* Content Input */}
         <div className="space-y-4">
           <textarea
@@ -144,7 +163,7 @@ export default function CreatePage() {
         {isScheduling ? (
           <button
             onClick={handleSchedule}
-            disabled={!content.trim() || !scheduledTime || isSubmitting}
+            disabled={!content.trim() || !scheduledTime || isSubmitting || !dbUser?.id}
             className="farcaster-button w-full"
           >
             {isSubmitting ? 'Scheduling...' : 'Schedule Post'}
@@ -152,7 +171,7 @@ export default function CreatePage() {
         ) : (
           <button
             onClick={handleSave}
-            disabled={!content.trim() || isSubmitting}
+            disabled={!content.trim() || isSubmitting || !dbUser?.id}
             className="farcaster-button w-full"
           >
             {isSubmitting ? 'Saving...' : 'Save as Draft'}
