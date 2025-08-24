@@ -18,7 +18,7 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSigningUp, setIsSigningUp] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { dbUser } = useFarcasterUser()
+  const { user, dbUser } = useFarcasterUser()
   const { refreshUser } = useAuth()
   const router = useRouter()
 
@@ -32,22 +32,22 @@ export default function SignupPage() {
     setIsLoading(false)
   }, [dbUser, router])
 
-  // Simulate getting user data from Farcaster Mini App SDK
+  // Get user data from Farcaster Quick Auth
   useEffect(() => {
     const getUserData = async () => {
       try {
-        // TODO: Replace with actual Mini App SDK call
-        // const userData = await MiniApp.getUser()
-
-        // For now, simulate user data
-        const mockUserData: FarcasterUserData = {
-          fid: 12345,
-          username: 'alice',
-          displayName: 'Alice',
-          avatarUrl: 'https://example.com/avatar.jpg'
+        // If we have user data from Quick Auth, use it
+        if (user) {
+          setUserData({
+            fid: user.fid,
+            username: user.username,
+            displayName: user.displayName,
+            avatarUrl: user.avatarUrl
+          })
+        } else {
+          // No user data available, show error
+          setError('Could not load your Farcaster account information. Please try again.')
         }
-
-        setUserData(mockUserData)
       } catch (err) {
         console.error('Error getting user data:', err)
         setError('Could not load your Farcaster account information')
@@ -55,7 +55,7 @@ export default function SignupPage() {
     }
 
     getUserData()
-  }, [])
+  }, [user])
 
   const handleSignup = async () => {
     if (!userData) return
