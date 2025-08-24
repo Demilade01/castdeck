@@ -15,26 +15,12 @@ export async function GET(request: NextRequest) {
     // Extract the token from the Bearer header
     const token = authHeader.substring(7)
 
-    try {
-      // For now, we'll return a mock user data
-      // In a real implementation, you would verify the JWT token from the Mini App SDK
-      const userData = {
-        fid: 12345, // Mock FID
-        username: 'testuser',
-        displayName: 'Test User',
-        avatarUrl: null
-      }
-
-      console.log('✅ User data returned:', userData)
-
-      return NextResponse.json(userData)
-    } catch (verifyError) {
-      console.error('❌ Token verification failed:', verifyError)
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      )
-    }
+    // For now, return an error indicating authentication is required
+    // In a real implementation, you would verify the JWT token from the Mini App SDK
+    return NextResponse.json(
+      { error: 'Authentication required - please use Mini App SDK' },
+      { status: 401 }
+    )
   } catch (error) {
     console.error('❌ User data endpoint error:', error)
     return NextResponse.json(
