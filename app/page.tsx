@@ -2,13 +2,24 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useFarcasterUser } from "@/lib/farcaster";
+import { useAuth } from "@/lib/auth-context";
 import { castdeckService } from "@/lib/database";
 
 export default function Home() {
   const [stats, setStats] = useState({ draftCount: 0, scheduledCount: 0 });
   const [isLoading, setIsLoading] = useState(true);
-  const { dbUser } = useFarcasterUser();
+  const { dbUser, needsSignup, isLoading: userLoading } = useFarcasterUser();
+  const { signOut } = useAuth();
+  const router = useRouter();
+
+  // Redirect to signup if needed
+  useEffect(() => {
+    if (!userLoading && needsSignup) {
+      router.push('/signup');
+    }
+  }, [needsSignup, userLoading, router]);
 
   // Load user stats from database
   useEffect(() => {
@@ -32,6 +43,20 @@ export default function Home() {
     loadStats();
   }, [dbUser?.id]);
 
+  // Show loading while checking user status
+  if (userLoading || needsSignup) {
+    return (
+      <div className="mini-app mini-app-container">
+        <div className="p-4 flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-gray-300 border-t-black dark:border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-500 dark:text-gray-400">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mini-app mini-app-container">
       {/* Mini App Header */}
@@ -44,12 +69,22 @@ export default function Home() {
           </div>
           <span className="font-semibold text-lg">CastDeck</span>
         </div>
-        <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826 2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Debug: Sign out button for testing */}
+          <button
+            onClick={signOut}
+            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-xs"
+            title="Sign out (debug)"
+          >
+            Sign Out
+          </button>
+          <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826 2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Main Content */}
@@ -57,7 +92,7 @@ export default function Home() {
         {/* Welcome Section */}
         <div className="text-center py-6">
           <h1 className="text-2xl font-bold mb-2">Welcome to CastDeck</h1>
-          <p className="text-gray-600 dark:text-gray-400 text-sm">
+          <p className="text-gray-600 dark:text-gray-400">
             Schedule and manage your Farcaster content
           </p>
         </div>
