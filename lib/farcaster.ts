@@ -1,6 +1,6 @@
 // Farcaster Mini App integration
 import { useEffect, useState } from 'react'
-import { userService, castdeckService } from './database'
+import { userService } from './database'
 
 // Import the actual Mini App SDK
 import MiniApp from '@farcaster/miniapp-sdk'
@@ -18,6 +18,7 @@ interface MiniAppContext {
   theme: 'light' | 'dark'
   isReady: boolean
   dbUser: any // Database user record
+  needsSignup: boolean
 }
 
 // Mini App SDK hook
@@ -26,7 +27,8 @@ export const useMiniApp = () => {
     user: null,
     theme: 'light',
     isReady: false,
-    dbUser: null
+    dbUser: null,
+    needsSignup: false
   })
 
   useEffect(() => {
@@ -46,46 +48,63 @@ export const useMiniApp = () => {
           console.warn('⚠️ MiniApp.actions.ready() not available')
         }
 
-        // For now, use fallback user data until we figure out the correct SDK API
-        const miniAppUser: MiniAppUser = {
-          fid: 12345,
-          username: 'alice',
-          displayName: 'Alice',
-          avatarUrl: 'https://example.com/avatar.jpg'
-        }
-
-        // Create user in database
+        // Get user data from Mini App SDK (simulated for now)
+        let miniAppUser: MiniAppUser | null = null
         let dbUser = null
+        let needsSignup = false
+
         try {
-          dbUser = await userService.getOrCreateUser(
-            miniAppUser.fid,
-            miniAppUser.username,
-            miniAppUser.displayName,
-            miniAppUser.avatarUrl
-          )
-          console.log('✅ Database user created:', dbUser)
-        } catch (dbError) {
-          console.warn('⚠️ Could not create database user:', dbError)
+          // TODO: Replace with actual Mini App SDK call
+          // const userData = await MiniApp.getUser()
+
+          // For now, simulate user data
+          miniAppUser = {
+            fid: 12345,
+            username: 'alice',
+            displayName: 'Alice',
+            avatarUrl: 'https://example.com/avatar.jpg'
+          }
+
+          // Check if user exists in database
+          if (miniAppUser) {
+            try {
+              dbUser = await userService.getUserByFarcasterId(miniAppUser.fid)
+              if (!dbUser) {
+                needsSignup = true
+              }
+            } catch (dbError) {
+              console.warn('⚠️ Could not check database user:', dbError)
+              needsSignup = true
+            }
+          }
+        } catch (userError) {
+          console.warn('⚠️ Could not get user data:', userError)
         }
 
-        // Get theme from system preference
-        const theme: 'light' | 'dark' = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        // Get theme from system preference (only on client side)
+        let theme: 'light' | 'dark' = 'light'
+        if (typeof window !== 'undefined' && window.matchMedia) {
+          theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        }
 
         setContext({
           user: miniAppUser,
           theme,
           isReady: true,
-          dbUser
+          dbUser,
+          needsSignup
         })
 
-        // Listen for theme changes
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-        const handleThemeChange = (e: MediaQueryListEvent) => {
-          setContext(prev => ({ ...prev, theme: e.matches ? 'dark' : 'light' }))
-        }
-        mediaQuery.addEventListener('change', handleThemeChange)
+        // Listen for theme changes (only on client side)
+        if (typeof window !== 'undefined' && window.matchMedia) {
+          const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+          const handleThemeChange = (e: MediaQueryListEvent) => {
+            setContext(prev => ({ ...prev, theme: e.matches ? 'dark' : 'light' }))
+          }
+          mediaQuery.addEventListener('change', handleThemeChange)
 
-        return () => mediaQuery.removeEventListener('change', handleThemeChange)
+          return () => mediaQuery.removeEventListener('change', handleThemeChange)
+        }
       } catch (error) {
         console.error('❌ Failed to initialize Mini App:', error)
 
@@ -94,7 +113,8 @@ export const useMiniApp = () => {
           user: null,
           theme: 'light',
           isReady: true,
-          dbUser: null
+          dbUser: null,
+          needsSignup: false
         })
       }
     }
@@ -102,17 +122,46 @@ export const useMiniApp = () => {
     initMiniApp()
   }, [])
 
+  // Function to refresh user state (for testing)
+  const refreshUserState = async () => {
+    if (context.user) {
+      try {
+        const dbUser = await userService.getUserByFarcasterId(context.user.fid)
+        setContext(prev => ({
+          ...prev,
+          dbUser,
+          needsSignup: !dbUser
+        }))
+      } catch (error) {
+        console.error('Error refreshing user state:', error)
+        setContext(prev => ({
+          ...prev,
+          dbUser: null,
+          needsSignup: true
+        }))
+      }
+    }
+  }
+
+  // Expose refresh function for testing (only on client side)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      ;(window as any).refreshUserState = refreshUserState
+    }
+  }, [context.user])
+
   return context
 }
 
 // Hook for getting current user
 export const useFarcasterUser = () => {
-  const { user, dbUser, isReady } = useMiniApp()
+  const { user, dbUser, isReady, needsSignup } = useMiniApp()
 
   return {
     user,
     dbUser,
     isLoading: !isReady,
+    needsSignup,
     error: null
   }
 }
@@ -168,14 +217,18 @@ export const useMiniAppNavigation = () => {
         await MiniApp.actions.openUrl(path)
       } else {
         // Fallback for development
-        window.history.pushState({}, '', path)
-        window.dispatchEvent(new PopStateEvent('popstate'))
+        if (typeof window !== 'undefined') {
+          window.history.pushState({}, '', path)
+          window.dispatchEvent(new PopStateEvent('popstate'))
+        }
       }
     } catch (error) {
       console.error('Navigation error:', error)
       // Fallback for development
-      window.history.pushState({}, '', path)
-      window.dispatchEvent(new PopStateEvent('popstate'))
+      if (typeof window !== 'undefined') {
+        window.history.pushState({}, '', path)
+        window.dispatchEvent(new PopStateEvent('popstate'))
+      }
     }
   }
 
@@ -185,12 +238,16 @@ export const useMiniAppNavigation = () => {
         await MiniApp.actions.close()
       } else {
         // Fallback for development
-        window.history.back()
+        if (typeof window !== 'undefined') {
+          window.history.back()
+        }
       }
     } catch (error) {
       console.error('Go back error:', error)
       // Fallback for development
-      window.history.back()
+      if (typeof window !== 'undefined') {
+        window.history.back()
+      }
     }
   }
 
@@ -217,8 +274,10 @@ export const useMiniAppTheme = () => {
   const { theme } = useMiniApp()
 
   useEffect(() => {
-    // Apply theme to document
-    document.documentElement.classList.toggle('dark', theme === 'dark')
+    // Apply theme to document (only on client side)
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.toggle('dark', theme === 'dark')
+    }
   }, [theme])
 
   return theme

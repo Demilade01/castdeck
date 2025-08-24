@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useFarcasterUser } from '@/lib/farcaster'
 import { castdeckService } from '@/lib/database'
@@ -11,8 +11,15 @@ export default function CreatePage() {
   const [scheduledTime, setScheduledTime] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { dbUser } = useFarcasterUser()
+  const { dbUser, needsSignup, isLoading: userLoading } = useFarcasterUser()
   const router = useRouter()
+
+  // Redirect to signup if needed
+  useEffect(() => {
+    if (!userLoading && needsSignup) {
+      router.push('/signup')
+    }
+  }, [needsSignup, userLoading, router])
 
   const characterCount = content.length
   const maxCharacters = 320 // Farcaster cast limit
@@ -62,6 +69,20 @@ export default function CreatePage() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  // Show loading while checking user status
+  if (userLoading || needsSignup) {
+    return (
+      <div className="mini-app mini-app-container">
+        <div className="p-4 flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-gray-300 border-t-black dark:border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-500 dark:text-gray-400">Loading...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

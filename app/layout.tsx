@@ -1,17 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import MiniAppProvider from "@/components/mini-app-provider";
+import { AuthProvider } from "@/lib/auth-context";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "CastDeck",
@@ -27,21 +20,18 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-transparent`}
+        className={`${inter.className} bg-transparent`}
         style={{
-          // Mini App specific styles
           overscrollBehavior: 'none',
           WebkitOverflowScrolling: 'touch',
-          // Remove any default margins/padding
           margin: 0,
           padding: 0,
         }}
       >
         <MiniAppProvider>
-          {/* Mini App Container */}
-          <div className="min-h-screen bg-white dark:bg-black">
+          <AuthProvider>
             {children}
-          </div>
+          </AuthProvider>
         </MiniAppProvider>
       </body>
     </html>
