@@ -18,7 +18,7 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSigningUp, setIsSigningUp] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { dbUser } = useFarcasterUser()
+  const { user, dbUser } = useFarcasterUser()
   const { refreshUser } = useAuth()
   const router = useRouter()
 
@@ -32,22 +32,22 @@ export default function SignupPage() {
     setIsLoading(false)
   }, [dbUser, router])
 
-  // Simulate getting user data from Farcaster Mini App SDK
+  // Get user data from Farcaster Quick Auth
   useEffect(() => {
     const getUserData = async () => {
       try {
-        // TODO: Replace with actual Mini App SDK call
-        // const userData = await MiniApp.getUser()
-
-        // For now, simulate user data
-        const mockUserData: FarcasterUserData = {
-          fid: 12345,
-          username: 'alice',
-          displayName: 'Alice',
-          avatarUrl: 'https://example.com/avatar.jpg'
+        // If we have user data from Quick Auth, use it
+        if (user) {
+          setUserData({
+            fid: user.fid,
+            username: user.username,
+            displayName: user.displayName,
+            avatarUrl: user.avatarUrl
+          })
+        } else {
+          // No user data available, show error
+          setError('Could not load your Farcaster account information. Please try again.')
         }
-
-        setUserData(mockUserData)
       } catch (err) {
         console.error('Error getting user data:', err)
         setError('Could not load your Farcaster account information')
@@ -55,7 +55,7 @@ export default function SignupPage() {
     }
 
     getUserData()
-  }, [])
+  }, [user])
 
   const handleSignup = async () => {
     if (!userData) return
@@ -135,7 +135,7 @@ export default function SignupPage() {
         </div>
 
         {/* User Info Card */}
-        {userData && (
+        {userData ? (
           <div className="farcaster-card">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
@@ -162,6 +162,19 @@ export default function SignupPage() {
                   FID: {userData.fid}
                 </p>
               </div>
+            </div>
+          </div>
+        ) : (
+          <div className="farcaster-card">
+            <div className="text-center py-6">
+              <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <p className="text-gray-500 dark:text-gray-400">
+                Connecting to your Farcaster account...
+              </p>
             </div>
           </div>
         )}
