@@ -25,6 +25,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (dbUser && !needsSignup) {
         setIsAuthenticated(true)
         setUser(dbUser)
+      } else if (dbUser && dbUser.fid) {
+        // Even if we need signup, if we have a valid FID, we can authenticate
+        // This handles the case where we have minimal user data from the JWT
+        setIsAuthenticated(true)
+        setUser(dbUser)
       } else {
         setIsAuthenticated(false)
         setUser(null)
@@ -36,13 +41,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = () => {
     setIsAuthenticated(false)
     setUser(null)
-    // In a real app, you might want to clear local storage or call an API
+    // Clear any stored tokens or session data
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('farcaster_token')
+      sessionStorage.removeItem('farcaster_token')
+    }
   }
 
   const refreshUser = async () => {
-    if (user?.farcaster_id) {
+    if (user?.farcaster_id || user?.fid) {
       try {
-        const refreshedUser = await userService.getUserByFarcasterId(user.farcaster_id)
+        const userId = user.farcaster_id || user.fid
+        const refreshedUser = await userService.getUserByFarcasterId(userId)
         if (refreshedUser) {
           setUser(refreshedUser)
           setIsAuthenticated(true)
