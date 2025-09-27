@@ -14,10 +14,14 @@ export default function CreatePage() {
   const { dbUser, needsSignup, isLoading: userLoading } = useFarcasterUser()
   const router = useRouter()
 
-  // Redirect to signup if needed
+  // Redirect to signup if needed (but not for guest users)
   useEffect(() => {
     if (!userLoading && needsSignup) {
-      router.push('/signup')
+      // Check if user is in guest mode
+      const isGuestMode = typeof window !== 'undefined' && localStorage.getItem('castdeck_guest_mode') === 'true'
+      if (!isGuestMode) {
+        router.push('/signup')
+      }
     }
   }, [needsSignup, userLoading, router])
 
@@ -25,7 +29,36 @@ export default function CreatePage() {
   const maxCharacters = 320 // Farcaster cast limit
 
   const handleSave = async () => {
-    if (!content.trim() || !dbUser?.id) return
+    if (!content.trim()) return
+
+    // Check if user is in guest mode
+    const isGuestMode = typeof window !== 'undefined' && localStorage.getItem('castdeck_guest_mode') === 'true'
+
+    if (isGuestMode) {
+      // For guest users, save to localStorage instead of database
+      try {
+        const drafts = JSON.parse(localStorage.getItem('castdeck_guest_drafts') || '[]')
+        const newDraft = {
+          id: Date.now().toString(),
+          content: content.trim(),
+          status: 'draft',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+        drafts.push(newDraft)
+        localStorage.setItem('castdeck_guest_drafts', JSON.stringify(drafts))
+
+        console.log('✅ Draft saved to local storage')
+        setError('Draft saved locally. Sign up to sync across devices.')
+        setTimeout(() => setError(null), 3000)
+      } catch (err) {
+        console.error('Error saving draft to localStorage:', err)
+        setError('Failed to save draft locally.')
+      }
+      return
+    }
+
+    if (!dbUser?.id) return
 
     setIsSubmitting(true)
     setError(null)
@@ -48,7 +81,17 @@ export default function CreatePage() {
   }
 
   const handleSchedule = async () => {
-    if (!content.trim() || !scheduledTime || !dbUser?.id) return
+    if (!content.trim() || !scheduledTime) return
+
+    // Check if user is in guest mode
+    const isGuestMode = typeof window !== 'undefined' && localStorage.getItem('castdeck_guest_mode') === 'true'
+
+    if (isGuestMode) {
+      setError('Scheduling requires an account. Please sign up to schedule posts.')
+      return
+    }
+
+    if (!dbUser?.id) return
 
     setIsSubmitting(true)
     setError(null)

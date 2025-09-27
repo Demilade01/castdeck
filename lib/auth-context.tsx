@@ -22,6 +22,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!userLoading) {
+      // Check for guest mode first
+      if (typeof window !== 'undefined') {
+        const isGuestMode = localStorage.getItem('castdeck_guest_mode') === 'true'
+        if (isGuestMode) {
+          const guestUser = {
+            fid: localStorage.getItem('castdeck_guest_fid') || 'guest',
+            username: localStorage.getItem('castdeck_guest_username') || 'Guest',
+            displayName: localStorage.getItem('castdeck_guest_displayName') || 'Guest User',
+            isGuest: true
+          }
+          setIsAuthenticated(true)
+          setUser(guestUser)
+          setIsLoading(false)
+          return
+        }
+      }
+
       if (dbUser && !needsSignup) {
         setIsAuthenticated(true)
         setUser(dbUser)
@@ -45,6 +62,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('farcaster_token')
       sessionStorage.removeItem('farcaster_token')
+      // Clear guest mode data
+      localStorage.removeItem('castdeck_guest_mode')
+      localStorage.removeItem('castdeck_guest_fid')
+      localStorage.removeItem('castdeck_guest_username')
+      localStorage.removeItem('castdeck_guest_displayName')
     }
   }
 

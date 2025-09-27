@@ -45,12 +45,25 @@ export default function SignupPage() {
             avatarUrl: user.avatarUrl
           })
         } else {
-          // No user data available, show error
-          setError('Could not load your Farcaster account information. Please try again.')
+          // No user data available - this happens when not in Farcaster environment
+          // Set a default guest user data
+          setUserData({
+            fid: 0,
+            username: 'guest',
+            displayName: 'Guest User',
+            avatarUrl: undefined
+          })
+          // Don't show error, just allow guest mode
         }
       } catch (err) {
         console.error('Error getting user data:', err)
-        setError('Could not load your Farcaster account information')
+        // Set default guest data instead of showing error
+        setUserData({
+          fid: 0,
+          username: 'guest',
+          displayName: 'Guest User',
+          avatarUrl: undefined
+        })
       }
     }
 
@@ -100,9 +113,25 @@ export default function SignupPage() {
     }
   }
 
-  const handleSkip = () => {
-    // For now, redirect to home (could implement guest mode later)
-    router.push('/')
+  const handleSkip = async () => {
+    try {
+      // Create a guest user session by setting a flag in localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('castdeck_guest_mode', 'true')
+        localStorage.setItem('castdeck_guest_fid', userData?.fid?.toString() || 'guest')
+        localStorage.setItem('castdeck_guest_username', userData?.username || 'Guest')
+        localStorage.setItem('castdeck_guest_displayName', userData?.displayName || 'Guest User')
+      }
+
+      // Refresh auth context to recognize guest mode
+      await refreshUser()
+
+      router.push('/')
+    } catch (error) {
+      console.error('Error setting guest mode:', error)
+      // Fallback: just redirect to home
+      router.push('/')
+    }
   }
 
   if (isLoading) {
@@ -172,9 +201,15 @@ export default function SignupPage() {
                 <p className="text-gray-500 dark:text-gray-400">
                   @{userData.username}
                 </p>
-                <p className="text-sm text-gray-400">
-                  FID: {userData.fid}
-                </p>
+                {userData.fid > 0 ? (
+                  <p className="text-sm text-gray-400">
+                    FID: {userData.fid}
+                  </p>
+                ) : (
+                  <p className="text-sm text-orange-500">
+                    Guest Mode - Limited Features
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -226,10 +261,10 @@ export default function SignupPage() {
       <div className="mini-app-bottom-sheet p-4 space-y-3">
         <button
           onClick={handleSignup}
-          disabled={!userData || isSigningUp}
-          className="farcaster-button w-full"
+          disabled={!userData || isSigningUp || userData?.fid === 0}
+          className="farcaster-button w-full disabled:opacity-50"
         >
-          {isSigningUp ? 'Creating Account...' : 'Connect Farcaster Account'}
+          {userData?.fid === 0 ? 'Farcaster Required' : (isSigningUp ? 'Creating Account...' : 'Connect Farcaster Account')}
         </button>
 
         <button

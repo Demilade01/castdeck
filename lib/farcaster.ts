@@ -24,9 +24,16 @@ interface MiniAppContext {
 // Check if running in Mini App environment
 const isInMiniApp = async (): Promise<boolean> => {
   try {
-    return await sdk.isInMiniApp()
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise<boolean>((_, reject) =>
+      setTimeout(() => reject(new Error('Timeout')), 3000)
+    )
+
+    const sdkPromise = sdk.isInMiniApp()
+
+    return await Promise.race([sdkPromise, timeoutPromise])
   } catch (error) {
-    console.log('Not running in Mini App environment')
+    console.log('Not running in Mini App environment:', error)
     return false
   }
 }
@@ -43,20 +50,71 @@ export const useMiniApp = () => {
     isMiniApp: false
   })
 
+  // Emergency fallback - if loading takes too long, force completion
+  useEffect(() => {
+    const emergencyTimeout = setTimeout(() => {
+      if (context.isLoading) {
+        console.warn('🚨 Emergency fallback: Forcing app to load')
+        setContext(prev => ({
+          ...prev,
+          isLoading: false,
+          needsSignup: true,
+          isReady: true
+        }))
+      }
+    }, 15000) // 15 second emergency timeout
+
+    return () => clearTimeout(emergencyTimeout)
+  }, [context.isLoading])
+
   useEffect(() => {
     const initMiniApp = async () => {
       try {
-        console.log('Initializing Mini App...')
+        console.log('🚀 Initializing Mini App...')
+        console.log('Environment check:', {
+          window: typeof window !== 'undefined',
+          sdk: typeof sdk !== 'undefined'
+        })
+
+        // Add overall timeout to prevent infinite loading
+        const initTimeout = setTimeout(() => {
+          console.warn('⚠️ Mini App initialization timeout, proceeding with fallback')
+          setContext({
+            user: null,
+            theme: 'light',
+            isReady: true,
+            dbUser: null,
+            needsSignup: true,
+            isLoading: false,
+            isMiniApp: false
+          })
+        }, 10000) // 10 second timeout
 
         // Check if running in Mini App environment
-        const miniApp = await isInMiniApp()
-        console.log('Is Mini App:', miniApp)
+        let miniApp = false
+
+        // Quick check if SDK is available
+        if (typeof sdk === 'undefined') {
+          console.log('SDK not available, skipping Mini App detection')
+          miniApp = false
+        } else {
+          try {
+            miniApp = await isInMiniApp()
+            console.log('Is Mini App:', miniApp)
+          } catch (sdkError) {
+            console.log('SDK error, assuming not in Mini App:', sdkError)
+            miniApp = false
+          }
+        }
+
+        clearTimeout(initTimeout)
 
         let farcasterUser: FarcasterUser | null = null
         let dbUser = null
         let needsSignup = false
 
-        if (miniApp) {
+        try {
+          if (miniApp) {
           // Call ready() to dismiss the splash screen
           await sdk.actions.ready()
           console.log('✅ Mini App ready() called successfully')
@@ -95,6 +153,10 @@ export const useMiniApp = () => {
         } else {
           // Not in Mini App environment, user needs to sign up
           console.log('Not in Mini App environment, user needs to sign up')
+          needsSignup = true
+        }
+        } catch (miniAppError) {
+          console.error('❌ Error in Mini App logic:', miniAppError)
           needsSignup = true
         }
 

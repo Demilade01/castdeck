@@ -14,10 +14,14 @@ export default function Home() {
   const { signOut } = useAuth();
   const router = useRouter();
 
-  // Redirect to signup if needed
+  // Redirect to signup if needed (but not for guest users)
   useEffect(() => {
     if (!userLoading && needsSignup) {
-      router.push('/signup');
+      // Check if user is in guest mode
+      const isGuestMode = typeof window !== 'undefined' && localStorage.getItem('castdeck_guest_mode') === 'true'
+      if (!isGuestMode) {
+        router.push('/signup');
+      }
     }
   }, [needsSignup, userLoading, router]);
 
