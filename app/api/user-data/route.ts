@@ -24,15 +24,74 @@ export async function GET(request: NextRequest) {
         const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString())
         console.log('JWT payload:', payload)
 
-        // Extract user data from the token payload
-        const userData = {
-          fid: payload.sub || payload.fid,
-          username: payload.username,
-          displayName: payload.displayName,
-          avatarUrl: payload.avatarUrl
+        const fid = payload.sub || payload.fid
+
+        if (!fid) {
+          return NextResponse.json(
+            { error: 'Invalid token: missing user ID' },
+            { status: 401 }
+          )
         }
 
-        return NextResponse.json(userData)
+        // Fetch user data from Farcaster API using the fid
+        try {
+          const farcasterResponse = await fetch(`https://hub-api.pinata.cloud/v1/userDataByFid?fid=${fid}`)
+
+          if (!farcasterResponse.ok) {
+            console.error('Failed to fetch user data from Farcaster API:', farcasterResponse.status)
+            // Fallback: return minimal data with just fid
+            return NextResponse.json({
+              fid: fid,
+              username: `user_${fid}`,
+              displayName: `User ${fid}`,
+              avatarUrl: null
+            })
+          }
+
+          const userDataResponse = await farcasterResponse.json()
+          console.log('Farcaster user data response:', userDataResponse)
+
+          // Extract user data from Farcaster API response
+          const userData = {
+            fid: fid,
+            username: null as string | null,
+            displayName: null as string | null,
+            avatarUrl: null as string | null
+          }
+
+          // Parse the user data array from Farcaster API
+          if (userDataResponse.data && Array.isArray(userDataResponse.data)) {
+            userDataResponse.data.forEach((item: any) => {
+              switch (item.type) {
+                case 'USER_DATA_TYPE_USERNAME':
+                  userData.username = item.value
+                  break
+                case 'USER_DATA_TYPE_DISPLAY':
+                  userData.displayName = item.value
+                  break
+                case 'USER_DATA_TYPE_PFP':
+                  userData.avatarUrl = item.value
+                  break
+              }
+            })
+          }
+
+          // Provide fallback values if data is missing
+          if (!userData.username) userData.username = `user_${fid}`
+          if (!userData.displayName) userData.displayName = `User ${fid}`
+
+          return NextResponse.json(userData)
+
+        } catch (farcasterError) {
+          console.error('Error fetching from Farcaster API:', farcasterError)
+          // Fallback: return minimal data
+          return NextResponse.json({
+            fid: fid,
+            username: `user_${fid}`,
+            displayName: `User ${fid}`,
+            avatarUrl: null
+          })
+        }
       }
     } catch (jwtError) {
       console.error('JWT verification failed:', jwtError)
