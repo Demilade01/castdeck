@@ -1,16 +1,7 @@
 {
   "name": "CastDeck",
   "description": "Schedule and manage your Farcaster content with ease. Create drafts, schedule posts, and track your content flow.",
-  "icon": {
-    "url": "/icon-192.png",
-    "alt": "CastDeck"
-  },
-  "screenshots": [
-    {
-      "url": "/screenshot-1.png",
-      "alt": "CastDeck Dashboard"
-    }
-  ],
+  "icon": "https://castdeck-two.vercel.app/icon-192.svg",
   "url": "https://castdeck-two.vercel.app",
   "version": "1.0.0",
   "developer": {
@@ -20,8 +11,5 @@
     "user:read"
   ],
   "category": "productivity",
-  "tags": ["scheduling", "content", "farcaster", "social"],
-  "miniapp": {
-    "version": "1.0.0"
-  }
+  "tags": ["scheduling", "content", "farcaster", "social"]
 }
