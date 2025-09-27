@@ -11,5 +11,11 @@
     "user:read"
   ],
   "category": "productivity",
-  "tags": ["scheduling", "content", "farcaster", "social"]
+  "tags": ["scheduling", "content", "farcaster", "social"],
+  "accountAssociation": {
+    "header": "eyJmaWQiOjExOTc3MjIsInR5cGUiOiJhdXRoIiwia2V5IjoiMHg1YkM0QWEwZGMwRTE4MGEyQzMzOTVjMDA4OWZBMzU2MkNDOTU0MDAwIn0",
+    "payload": "eyJkb21haW4iOiJjYXN0ZGVjay10d28udmVyY2VsLmFwcCJ9",
+    "signature": "pj3OHn06Bcs0ADja+b0ytatV99j4BFo6aRcCDvx0sNZeSTj3oL1fY0iCzFuCUsabUqED9x1/2TayWMILEYLEDxs="
+  }
+
 }
